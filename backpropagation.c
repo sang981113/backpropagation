@@ -3,8 +3,9 @@
 #include <stdlib.h>
 #include <math.h>
 
-double sigmoid(double x);
-double sigmoid_prime(double x);
+float sigmoid(float x);
+float sigmoid_prime(float x);
+int* get_target_vector(int target);
 
 int main()
 {
@@ -14,34 +15,54 @@ int main()
 	int n = 100;
 	int p = 20;
 	int m = 10;
-	double lr = 0.5;
+	float lr = 0.5;
 	int i, j, k, l;
 	int epoch;
 	int loop = 0;
+	int score = 0;
+	int target_num = 0;
+	float target_score = 0;
+	float dot_product = 0;
+	float input_unit[101] = { 1, };
+	float hidden_in[21] = { 0, };
+	float hidden_unit[21] = { 1, };
+	float hidden_error[21] = { 0, };
+	float output_in[11] = { 0 };
+	float output_unit[11] = { 1, };
+	float output_error[11] = { 0, };
+	float output_error_in[21] = { {0} };
+	int *target;
 
-	double dot_product = 0;
-	double input_unit[101] = { 0, };
-	double hidden_in[21] = { 0, };
-	double hidden_unit[21] = { 0, };
-	double hidden_error[21] = { 0, };
-	double output_in[10] = { 0 };
-	double output_unit[10] = { 0, };
-	double output_error[10] = { 0, };
-	double output_error_in[10] = { {0} };
-	double target[10] = { 0, };
-
+	float v[101][21];
+	float dv[101][21];
+	float nv[101][21];
+	float w[21][11];
+	float dw[21][11];
+	float nw[21][11];
 	//weight initialization
-	double v[101][20] = { {0} }; 
-	double dv[101][20] = { {0} };
-	double nv[101][20] = { {0} };
-	double w[21][10] = { {0} };
-	double dw[21][10] = { {0} };
-	double nw[21][10] = { {0} };
+	for (i = 0; i <= n; i++)
+	{
+		for (j = 0; j <= p; j++)
+		{
+			v[i][j] = 1;
+			dv[i][j] = 1;
+			nv[i][j] = 1;
+		}
+	}
+	for (j = 0; j <= p; j++)
+	{
+		for (k = 0; k <= m; k++)
+		{
+			w[j][k] = 1;
+			dw[j][k] = 1;
+			nw[j][k] = 1;
+		}
+	}
 
-	double** x_train = (double**)malloc(sizeof(double*) * pattern_num); //malloc array x_train[4000][100]
+	float** x_train = (float**)malloc(sizeof(float*) * pattern_num); //malloc array x_train[4000][100]
 	for (i = 0; i < pattern_num; i++)
 	{
-		x_train[i] = (double*)malloc(sizeof(double) * feature_num);
+		x_train[i] = (float*)malloc(sizeof(float) * feature_num);
 	}
 
 	int* y_train = (int*)malloc(sizeof(int) * pattern_num); //malloc array y_train[4000]
@@ -50,7 +71,7 @@ int main()
 	char* buffer = (char*)calloc(MAX_LEN, sizeof(char));
 
 	if (fopen_s(&fp, "train.txt", "r") == 0) //import data from file
-	{	
+	{
 		for (i = 0; i < pattern_num; i++)
 		{
 			fscanf_s(fp, "%d\n", &y_train[i]);
@@ -67,16 +88,32 @@ int main()
 	}
 
 	printf("수행할 epoch 수: ");
-	scanf("%d", &epoch);
+	scanf_s("%d", &epoch);
 
 	while (loop < epoch)
 	{
 		for (l = 0; l < pattern_num; l++)
 		{
+			int this_pattern = l * 400 / 4000 + (l * 400) % 4000;
+			for (i = 1; i <= n; i++)
+			{
+				for (j = 1; j <= p; j++)
+				{
+					v[i][j] = nv[i][j];
+				}
+			}
+			for (j = 1; j <= p; j++)
+			{
+				for (k = 1; k <= m; k++)
+				{
+					w[j][k] = nw[j][k];
+				}
+			}
+			
 			//forward propagation
 			for (i = 1; i <= n; i++) // insert x_train values into input units
 			{
-				input_unit[i] = x_train[l][i];
+				input_unit[i] = x_train[this_pattern][i-1];
 			}
 			for (j = 1; j <= p; j++)
 			{
@@ -99,13 +136,29 @@ int main()
 				output_unit[k] = sigmoid(output_in[k]);
 			}
 
+			//validation
+			target_score = 0;
+			for (i = 1; i <= m; i++)
+			{
+				if (target_score < output_unit[i])
+				{
+					target_score = output_unit[i];
+					target_num = i;
+				}
+			}
+			if (target_num - 1 == y_train[this_pattern])
+			{
+				score++;
+			}
+			target = get_target_vector(y_train[this_pattern]);
+
 			//back propagation
 			for (i = 1; i <= m; i++)
 			{
 				output_error[i] = (target[i] - output_unit[i]) * sigmoid_prime(output_in[i]);
 				for (j = 0; j <= p; j++)
 				{
-					dw[j][i] = lr * output_error[j] * hidden_unit[j];
+					dw[j][i] = lr * output_error[i] * hidden_unit[j];
 				}
 			}
 			for (i = 1; i <= p; i++)
@@ -138,16 +191,35 @@ int main()
 				}
 			}
 		}
+		printf("train acc: %f\n", (float) score / pattern_num);
+		score = 0;
 		loop++;
 	}
 }
 
-double sigmoid(double x)
+float sigmoid(float x)
 {
 	return 1 / (1 + exp(-x));
 }
 
-double sigmoid_prime(double x)
+float sigmoid_prime(float x)
 {
 	return sigmoid(x) * (1 - sigmoid(x));
+}
+
+int* get_target_vector(int target)
+{
+	int* target_vector = (int*)malloc(sizeof(int) * 11);
+	for (int i = 1; i <= 10; i++)
+	{
+		if (target == i - 1)
+		{
+			target_vector[i] = 1;
+		}
+		else
+		{
+			target_vector[i] = 0;
+		}
+	}
+	return target_vector;
 }
