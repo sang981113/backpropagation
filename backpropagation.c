@@ -23,14 +23,32 @@ int main()
 	int target_num = 0;
 	float target_score = 0;
 	float dot_product = 0;
-	float input_unit[101] = { 1, };
-	float hidden_in[21] = { 0, };
-	float hidden_unit[21] = { 1, };
-	float hidden_error[21] = { 0, };
-	float output_in[11] = { 0 };
-	float output_unit[11] = { 1, };
-	float output_error[11] = { 0, };
-	float output_error_in[21] = { {0} };
+	float input_unit[101];
+	float hidden_in[21];
+	float hidden_unit[21];
+	float hidden_error[21];
+	float output_error_in[21];
+	float output_in[11];
+	float output_unit[11];
+	float output_error[11];
+	for (i = 0; i <= n; i++)
+	{
+		input_unit[i] = 1;
+	}
+	for (i = 0; i <= p; i++)
+	{
+		hidden_in[i] = 1;
+		hidden_unit[i] = 1;
+		hidden_error[i] = 1;
+		output_error_in[i] = 1;
+	}
+	for (i = 0; i <= m; i++)
+	{
+		output_in[i] = 1;
+		output_unit[i] = 1;
+		output_error[i] = 1;
+	}
+
 	int *target;
 
 	float v[101][21];
@@ -169,7 +187,7 @@ int main()
 					dot_product += output_error[k] * w[i][k];
 				}
 				output_error_in[i] = dot_product;
-				hidden_error[i] = output_error_in[i] * sigmoid_prime(output_in[i]);
+				hidden_error[i] = output_error_in[i] * sigmoid_prime(hidden_in[i]);
 				for (j = 0; j <= n; j++)
 				{
 					dv[j][i] = lr * hidden_error[j] * input_unit[i];
