@@ -6,6 +6,7 @@
 float sigmoid(float x);
 float sigmoid_prime(float x);
 int* get_target_vector(int target);
+float random_float(void);
 
 int main()
 {
@@ -33,20 +34,20 @@ int main()
 	float output_error[11];
 	for (i = 0; i <= n; i++)
 	{
-		input_unit[i] = 1;
+		input_unit[i] = random_float();
 	}
 	for (i = 0; i <= p; i++)
 	{
-		hidden_in[i] = 1;
-		hidden_unit[i] = 1;
-		hidden_error[i] = 1;
-		output_error_in[i] = 1;
+		hidden_in[i] = random_float();
+		hidden_unit[i] = random_float();
+		hidden_error[i] = random_float();
+		output_error_in[i] = random_float();
 	}
 	for (i = 0; i <= m; i++)
 	{
-		output_in[i] = 1;
-		output_unit[i] = 1;
-		output_error[i] = 1;
+		output_in[i] = random_float();
+		output_unit[i] = random_float();
+		output_error[i] = random_float();
 	}
 
 	int *target;
@@ -62,18 +63,18 @@ int main()
 	{
 		for (j = 0; j <= p; j++)
 		{
-			v[i][j] = 1;
-			dv[i][j] = 1;
-			nv[i][j] = 1;
+			v[i][j] = random_float();
+			dv[i][j] = random_float();
+			nv[i][j] = random_float();
 		}
 	}
 	for (j = 0; j <= p; j++)
 	{
 		for (k = 0; k <= m; k++)
 		{
-			w[j][k] = 1;
-			dw[j][k] = 1;
-			nw[j][k] = 1;
+			w[j][k] = random_float();
+			dw[j][k] = random_float();
+			nw[j][k] = random_float();
 		}
 	}
 
@@ -240,4 +241,9 @@ int* get_target_vector(int target)
 		}
 	}
 	return target_vector;
+}
+
+float random_float(void)
+{
+	return (float)rand() / 32768;
 }
