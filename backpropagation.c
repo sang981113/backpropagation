@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <math.h>
 
+void import_data(float** x, int* y, int pattern_num, char* file_name);
 float sigmoid(float x);
 float sigmoid_prime(float x);
 int* get_target_vector(int target);
@@ -10,7 +11,8 @@ float random_float(void);
 
 int main()
 {
-	int pattern_num = 4000;
+	int train_pattern_num = 4000;
+	int test_pattern_num = 2000;
 	int feature_num = 100;
 
 	int n = 100;
@@ -61,59 +63,37 @@ int main()
 		}
 	}
 
-	float** x_train = (float**)malloc(sizeof(float*) * pattern_num); //malloc array x_train[4000][100]
-	for (i = 0; i < pattern_num; i++)
+	float** x_train = (float**)malloc(sizeof(float*) * train_pattern_num); //malloc array x_train[4000][100]
+	for (i = 0; i < train_pattern_num; i++)
 	{
 		x_train[i] = (float*)malloc(sizeof(float) * feature_num);
 	}
 
-	int* y_train = (int*)malloc(sizeof(int) * pattern_num); //malloc array y_train[4000]
+	int* y_train = (int*)malloc(sizeof(int) * train_pattern_num); //malloc array y_train[4000]
 
-	FILE* fp = NULL;
-	char* buffer = (char*)calloc(MAX_LEN, sizeof(char));
-
-	if (fopen_s(&fp, "train.txt", "r") == 0) //import data from file
+	float** x_test = (float**)malloc(sizeof(float*) * train_pattern_num); //malloc array x_test[2000][100]
+	for (i = 0; i < train_pattern_num; i++)
 	{
-		for (i = 0; i < pattern_num; i++)
-		{
-			fscanf_s(fp, "%d\n", &y_train[i]);
-			for (j = 0; j < 10; j++)
-			{
-				for (k = 0; k < 9; k++)
-				{
-					fscanf_s(fp, "%f ", &x_train[i][j * 10 + k]);
-				}
-				fscanf_s(fp, "%f\n", &x_train[i][j * 10 + 9]);
-			}
-		}
-		fclose(fp);
+		x_test[i] = (float*)malloc(sizeof(float) * feature_num);
 	}
+
+	int* y_test = (int*)malloc(sizeof(int) * train_pattern_num); //malloc array y_test[2000]
+
+	import_data(x_train, y_train, train_pattern_num, "train.txt");
+	import_data(x_test, y_test, test_pattern_num, "test.txt");
 
 	printf("수행할 epoch 수: ");
 	scanf_s("%d", &epoch);
 
+	//start train
 	while (loop < epoch)
 	{
-		for (l = 0; l < pattern_num; l++)
+		for (l = 0; l < train_pattern_num; l++)
 		{
-			int this_pattern = l * 400 / 4000 + (l * 400) % 4000;
-			for (i = 1; i <= n; i++)
-			{
-				for (j = 1; j <= p; j++)
-				{
-					v[i][j] = nv[i][j];
-				}
-			}
-			for (j = 1; j <= p; j++)
-			{
-				for (k = 1; k <= m; k++)
-				{
-					w[j][k] = nw[j][k];
-				}
-			}
+			int this_pattern = l / 10 + (l * train_pattern_num / 10) % train_pattern_num;
 			
 			//forward propagation
-			for (i = 1; i <= n; i++) // insert x_train values into input units
+			for (i = 1; i <= n; i++)
 			{
 				input_unit[i] = x_train[this_pattern][i-1];
 			}
@@ -182,20 +162,89 @@ int main()
 			{
 				for (j = 0; j <= p; j++)
 				{
-					nw[j][i] = w[j][i] + dw[j][i];
+					w[j][i] = w[j][i] + dw[j][i];
 				}
 			}
 			for (j = 1; j <= p; j++)
 			{
 				for (i = 0; i <= n; i++)
 				{
-					nv[i][j] = v[i][j] + dv[i][j];
+					v[i][j] = v[i][j] + dv[i][j];
 				}
 			}
 		}
-		printf("train acc: %f\n", (float) score / pattern_num);
+		printf("train acc: %f\n", (float) score / train_pattern_num);
 		score = 0;
 		loop++;
+	}
+
+	//start test
+	printf("start test\n");
+	for (l = 0; l < test_pattern_num; l++)
+	{
+		//forward propagation
+		for (i = 1; i <= n; i++)
+		{
+			input_unit[i] = x_test[l][i - 1];
+		}
+		for (j = 1; j <= p; j++)
+		{
+			dot_product = 0;
+			for (i = 1; i <= n; i++)
+			{
+				dot_product += input_unit[i] * v[i][j];
+			}
+			hidden_in[j] = v[0][j] + dot_product;
+			hidden_unit[j] = sigmoid(hidden_in[j]);
+		}
+		for (k = 1; k <= m; k++)
+		{
+			dot_product = 0;
+			for (j = 1; j <= p; j++)
+			{
+				dot_product += hidden_unit[j] * w[j][k];
+			}
+			output_in[k] = w[0][k] + dot_product;
+			output_unit[k] = sigmoid(output_in[k]);
+		}
+		//validation
+		target_score = 0;
+		for (i = 1; i <= m; i++)
+		{
+			if (target_score < output_unit[i])
+			{
+				target_score = output_unit[i];
+				target_num = i;
+			}
+		}
+		if (target_num - 1 == y_test[l])
+		{
+			score++;
+		}
+		target = get_target_vector(y_test[l]);
+	}
+	printf("test acc: %f\n", (float)score / test_pattern_num);
+	score = 0;
+}
+
+void import_data(float** x, int* y, int pattern_num, char* file_name)
+{
+	FILE* fp = NULL;
+	if (fopen_s(&fp, file_name, "r") == 0)
+	{
+		for (int i = 0; i < pattern_num; i++)
+		{
+			fscanf_s(fp, "%d\n", &y[i]);
+			for (int j = 0; j < 10; j++)
+			{
+				for (int k = 0; k < 9; k++)
+				{
+					fscanf_s(fp, "%f ", &x[i][j * 10 + k]);
+				}
+				fscanf_s(fp, "%f\n", &x[i][j * 10 + 9]);
+			}
+		}
+		fclose(fp);
 	}
 }
 
