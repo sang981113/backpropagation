@@ -24,31 +24,14 @@ int main()
 	int target_num = 0;
 	float target_score = 0;
 	float dot_product = 0;
-	float input_unit[101];
-	float hidden_in[21];
-	float hidden_unit[21];
-	float hidden_error[21];
-	float output_error_in[21];
-	float output_in[11];
-	float output_unit[11];
-	float output_error[11];
-	for (i = 0; i <= n; i++)
-	{
-		input_unit[i] = random_float();
-	}
-	for (i = 0; i <= p; i++)
-	{
-		hidden_in[i] = random_float();
-		hidden_unit[i] = random_float();
-		hidden_error[i] = random_float();
-		output_error_in[i] = random_float();
-	}
-	for (i = 0; i <= m; i++)
-	{
-		output_in[i] = random_float();
-		output_unit[i] = random_float();
-		output_error[i] = random_float();
-	}
+	float input_unit[101] = { 0 };
+	float hidden_in[21] = { 0 };
+	float hidden_unit[21] = { 0 };
+	float hidden_error[21] = { 0 };
+	float output_error_in[21] = { 0 };
+	float output_in[11] = { 0 };
+	float output_unit[11] = { 0 };
+	float output_error[11] = { 0 };
 
 	int *target;
 
@@ -174,7 +157,7 @@ int main()
 			//back propagation
 			for (i = 1; i <= m; i++)
 			{
-				output_error[i] = (target[i] - output_unit[i]) * sigmoid_prime(output_in[i]);
+				output_error[i] = (target[i] - output_unit[i]) * sigmoid_prime(output_unit[i]);
 				for (j = 0; j <= p; j++)
 				{
 					dw[j][i] = lr * output_error[i] * hidden_unit[j];
@@ -188,10 +171,10 @@ int main()
 					dot_product += output_error[k] * w[i][k];
 				}
 				output_error_in[i] = dot_product;
-				hidden_error[i] = output_error_in[i] * sigmoid_prime(hidden_in[i]);
+				hidden_error[i] = output_error_in[i] * sigmoid_prime(hidden_unit[i]);
 				for (j = 0; j <= n; j++)
 				{
-					dv[j][i] = lr * hidden_error[j] * input_unit[i];
+					dv[j][i] = lr * hidden_error[i] * input_unit[j];
 				}
 			}
 			//update wieghts and biases
@@ -206,7 +189,7 @@ int main()
 			{
 				for (i = 0; i <= n; i++)
 				{
-					nv[j][i] = v[j][i] + dv[j][i];
+					nv[i][j] = v[i][j] + dv[i][j];
 				}
 			}
 		}
