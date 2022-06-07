@@ -14,6 +14,8 @@ int main()
 	int train_pattern_num = 4000;
 	int test_pattern_num = 2000;
 	int feature_num = 100;
+	float train_acc = 0;
+	float test_acc = 0;
 
 	int n = 100;
 	int p = 20;
@@ -82,12 +84,13 @@ int main()
 	import_data(x_train, y_train, train_pattern_num, "train.txt");
 	import_data(x_test, y_test, test_pattern_num, "test.txt");
 
-	printf("수행할 epoch 수: ");
+	printf("수행할 Epoch 수: ");
 	scanf_s("%d", &epoch);
 
 	//start train
 	while (loop < epoch)
 	{
+		printf("Epoch %d/%d\t", loop+1, epoch);
 		for (l = 0; l < train_pattern_num; l++)
 		{
 			int this_pattern = l / 10 + (l * train_pattern_num / 10) % train_pattern_num;
@@ -165,66 +168,67 @@ int main()
 					w[j][i] = w[j][i] + dw[j][i];
 				}
 			}
-			for (j = 1; j <= p; j++)
+			for (i = 1; i <= p; i++)
 			{
-				for (i = 0; i <= n; i++)
+				for (j = 0; j <= n; j++)
 				{
-					v[i][j] = v[i][j] + dv[i][j];
+					v[j][i] = v[j][i] + dv[j][i];
 				}
 			}
 		}
-		printf("train acc: %f\n", (float) score / train_pattern_num);
+		train_acc = (float)score / train_pattern_num;
+		printf("train acc: %f\t", train_acc);
+		score = 0;
+
+		//start test
+		for (l = 0; l < test_pattern_num; l++)
+		{
+			//forward propagation
+			for (i = 1; i <= n; i++)
+			{
+				input_unit[i] = x_test[l][i - 1];
+			}
+			for (j = 1; j <= p; j++)
+			{
+				dot_product = 0;
+				for (i = 1; i <= n; i++)
+				{
+					dot_product += input_unit[i] * v[i][j];
+				}
+				hidden_in[j] = v[0][j] + dot_product;
+				hidden_unit[j] = sigmoid(hidden_in[j]);
+			}
+			for (k = 1; k <= m; k++)
+			{
+				dot_product = 0;
+				for (j = 1; j <= p; j++)
+				{
+					dot_product += hidden_unit[j] * w[j][k];
+				}
+				output_in[k] = w[0][k] + dot_product;
+				output_unit[k] = sigmoid(output_in[k]);
+			}
+			//validation
+			target_score = 0;
+			for (i = 1; i <= m; i++)
+			{
+				if (target_score < output_unit[i])
+				{
+					target_score = output_unit[i];
+					target_num = i;
+				}
+			}
+			if (target_num - 1 == y_test[l])
+			{
+				score++;
+			}
+			target = get_target_vector(y_test[l]);
+		}
+		test_acc = (float)score / test_pattern_num;
+		printf("test acc: %f\n", test_acc);
 		score = 0;
 		loop++;
 	}
-
-	//start test
-	printf("start test\n");
-	for (l = 0; l < test_pattern_num; l++)
-	{
-		//forward propagation
-		for (i = 1; i <= n; i++)
-		{
-			input_unit[i] = x_test[l][i - 1];
-		}
-		for (j = 1; j <= p; j++)
-		{
-			dot_product = 0;
-			for (i = 1; i <= n; i++)
-			{
-				dot_product += input_unit[i] * v[i][j];
-			}
-			hidden_in[j] = v[0][j] + dot_product;
-			hidden_unit[j] = sigmoid(hidden_in[j]);
-		}
-		for (k = 1; k <= m; k++)
-		{
-			dot_product = 0;
-			for (j = 1; j <= p; j++)
-			{
-				dot_product += hidden_unit[j] * w[j][k];
-			}
-			output_in[k] = w[0][k] + dot_product;
-			output_unit[k] = sigmoid(output_in[k]);
-		}
-		//validation
-		target_score = 0;
-		for (i = 1; i <= m; i++)
-		{
-			if (target_score < output_unit[i])
-			{
-				target_score = output_unit[i];
-				target_num = i;
-			}
-		}
-		if (target_num - 1 == y_test[l])
-		{
-			score++;
-		}
-		target = get_target_vector(y_test[l]);
-	}
-	printf("test acc: %f\n", (float)score / test_pattern_num);
-	score = 0;
 }
 
 void import_data(float** x, int* y, int pattern_num, char* file_name)
